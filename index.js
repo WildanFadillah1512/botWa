@@ -49,7 +49,7 @@ http.createServer((req, res) => {
     } else {
         res.end('<html><head><meta http-equiv="refresh" content="3"></head><body style="font-family: Arial; text-align: center; margin-top: 50px;"><h2>⏳ Menunggu Chromium berjalan untuk men-generate QR Code...</h2><p>Tunggu sekitar 1-2 menit...</p></body></html>');
     }
-}).listen(PORT, () => {
+}).listen(PORT, '0.0.0.0', () => {
     console.log(`[Server] 🌐 Keep-Alive Server berjalan di port ${PORT}`);
 });
 

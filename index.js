@@ -82,6 +82,10 @@ const client = new Client({
             '--disable-extensions',
             '--single-process',       // Hemat memory di server
             '--no-zygote',            // Hemat memory di server
+            '--memory-pressure-off',
+            '--disable-site-isolation-trials',
+            '--disable-web-security',
+            '--disable-features=IsolateOrigins,site-per-process'
         ],
     },
 });

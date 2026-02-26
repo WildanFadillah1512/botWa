@@ -1,0 +1,16 @@
+{
+  "name": "bot-wa",
+  "version": "1.0.0",
+  "description": "WhatsApp Bot - Auto Reply, Follow Up, Chat Logger & Backup",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "dev": "node index.js"
+  },
+  "dependencies": {
+    "dotenv": "^17.3.1",
+    "node-cron": "^3.0.3",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.26.0"
+  }
+}

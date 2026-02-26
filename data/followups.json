@@ -1,0 +1,110 @@
+{
+  "clients": [
+    {
+      "id": "followup_001",
+      "phone": "6281234567890",
+      "name": "Client Contoh",
+      "messages": [
+        {
+          "day": 1,
+          "text": "Halo {name}! 👋\nTerima kasih sudah menghubungi kami kemarin.\nApakah ada yang bisa kami bantu lebih lanjut? 😊"
+        },
+        {
+          "day": 3,
+          "text": "Hai {name}! 🌟\nKami punya promo spesial untuk Anda.\nDiskon 10% untuk pemesanan hari ini!\nKetik *order* untuk info lebih lanjut."
+        },
+        {
+          "day": 7,
+          "text": "Halo {name}! 😊\nKami ingin memastikan Anda mendapatkan layanan terbaik.\nJika ada pertanyaan, jangan ragu untuk menghubungi kami ya.\nKetik *menu* untuk melihat layanan kami."
+        }
+      ],
+      "status": "active",
+      "currentStep": 0,
+      "startDate": null,
+      "lastFollowUp": null
+    }
+  ],
+  "dynamic": [
+    {
+      "id": "dyn_1771831440131",
+      "phone": "6283857379353",
+      "targetTime": "2026-02-23T07:24:00.000Z",
+      "message": "hallo",
+      "status": "done",
+      "createdAt": "2026-02-23T07:24:00.132Z",
+      "sentAt": "2026-02-23T07:24:00.800Z"
+    },
+    {
+      "id": "dyn_1771831461932",
+      "phone": "6283857379353",
+      "targetTime": "2026-02-23T07:25:00.000Z",
+      "message": "hallo",
+      "status": "done",
+      "createdAt": "2026-02-23T07:24:21.932Z",
+      "sentAt": "2026-02-23T07:25:00.173Z"
+    },
+    {
+      "id": "dyn_1771832416776",
+      "phone": "6283857379353",
+      "targetTime": "2026-02-23T07:25:00.000Z",
+      "message": "hallo",
+      "status": "done",
+      "createdAt": "2026-02-23T07:40:16.776Z",
+      "sentAt": "2026-02-23T07:41:00.053Z"
+    },
+    {
+      "id": "dyn_1771832441430",
+      "phone": "6283857379353",
+      "targetTime": "2026-02-23T07:41:00.000Z",
+      "message": "hallo",
+      "status": "done",
+      "createdAt": "2026-02-23T07:40:41.430Z",
+      "sentAt": "2026-02-23T07:41:00.053Z"
+    },
+    {
+      "id": "dyn_1771834099402",
+      "phone": "6283857379353",
+      "targetTime": "2026-02-23T08:09:00.000Z",
+      "message": "hallo",
+      "status": "done",
+      "createdAt": "2026-02-23T08:08:19.402Z",
+      "sentAt": "2026-02-23T08:09:00.571Z"
+    },
+    {
+      "id": "dyn_1771918872106",
+      "phone": "6283857379353",
+      "targetTime": "2026-02-24T07:42:00.000Z",
+      "message": "hallo",
+      "status": "done",
+      "createdAt": "2026-02-24T07:41:12.107Z",
+      "sentAt": "2026-02-24T07:42:00.340Z"
+    },
+    {
+      "id": "dyn_1772078542922",
+      "phone": "6283857379353",
+      "targetTime": "2026-02-26T04:03:00.000Z",
+      "message": "hallo",
+      "status": "done",
+      "createdAt": "2026-02-26T04:02:22.922Z",
+      "sentAt": "2026-02-26T04:03:00.862Z"
+    },
+    {
+      "id": "dyn_1772080941656",
+      "phone": "6283857379353",
+      "targetTime": "2026-02-26T04:43:00.000Z",
+      "message": "hallo",
+      "status": "done",
+      "createdAt": "2026-02-26T04:42:21.657Z",
+      "sentAt": "2026-02-26T04:43:00.150Z"
+    },
+    {
+      "id": "dyn_1772081039096",
+      "phone": "191491620225193",
+      "targetTime": "2026-02-26T04:44:00.000Z",
+      "message": "Bro",
+      "status": "done",
+      "createdAt": "2026-02-26T04:43:59.096Z",
+      "sentAt": "2026-02-26T04:44:00.669Z"
+    }
+  ]
+}

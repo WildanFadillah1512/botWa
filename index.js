@@ -12,12 +12,43 @@ const http = require('http');
 // =============================================
 //   🌐 KEEP-ALIVE SERVER (UNTUK RENDER)
 // =============================================
+let currentQR = '';
+let isAuthenticated = false;
+
 // Render butuh aplikasi untuk "listen" di suatu port agar deploy sukses
 // Server ini juga dipakai untuk di-ping oleh UptimeRobot agar bot tidak tidur/sleep
 const PORT = process.env.PORT || 3000;
 http.createServer((req, res) => {
-    res.writeHead(200, { 'Content-Type': 'text/plain' });
-    res.end('Bot WhatsApp Suba Arch is Alive!\n');
+    res.writeHead(200, { 'Content-Type': 'text/html' });
+    if (isAuthenticated) {
+        res.end('<html><body style="font-family: Arial; text-align: center; margin-top: 50px;"><h1>✅ Bot WhatsApp Suba Arch is Alive & Authenticated!</h1></body></html>');
+    } else if (currentQR) {
+        res.end(`
+            <html>
+            <head>
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+                <meta http-equiv="refresh" content="10"> 
+            </head>
+            <body style="font-family: Arial; text-align: center; margin-top: 50px; background-color: #f0f2f5;">
+                <h2>📱 Scan QR Code untuk Login WhatsApp Bot</h2>
+                <div id="qrcode" style="display: inline-block; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);"></div>
+                <script>
+                    new QRCode(document.getElementById("qrcode"), {
+                        text: "${currentQR}",
+                        width: 300,
+                        height: 300,
+                        colorDark : "#000000",
+                        colorLight : "#ffffff",
+                        correctLevel : QRCode.CorrectLevel.L
+                    });
+                </script>
+                <p style="color: #666; margin-top: 20px;">Halaman ini otomatis refresh setiap 10 detik.<br>Setelah di-scan dari HP, tunggu beberapa saat sampai muncul notif berhasil.</p>
+            </body>
+            </html>
+        `);
+    } else {
+        res.end('<html><head><meta http-equiv="refresh" content="3"></head><body style="font-family: Arial; text-align: center; margin-top: 50px;"><h2>⏳ Menunggu Chromium berjalan untuk men-generate QR Code...</h2><p>Tunggu sekitar 1-2 menit...</p></body></html>');
+    }
 }).listen(PORT, () => {
     console.log(`[Server] 🌐 Keep-Alive Server berjalan di port ${PORT}`);
 });
@@ -61,9 +92,14 @@ const client = new Client({
  * Event: QR Code - tampilkan di terminal untuk di-scan
  */
 client.on('qr', (qr) => {
-    console.log('[Bot] 📱 Scan QR Code berikut dengan WhatsApp Anda:');
+    currentQR = qr;
+    console.log('====================================================');
+    console.log('[Bot] 📱 QR Code baru di-generate!');
+    console.log('[Bot] 🌐 BUKA URL RENDER DI BROWSER UNTUK SCAN QR CODE');
+    console.log('       (Kenyataan Terminal/Logs sering memotong QR)');
+    console.log('====================================================');
     console.log('');
-    qrcode.generate(qr, { small: true });
+    qrcode.generate(qr, { small: true }); // Tetap diprint untuk lokal
     console.log('');
     console.log('[Bot] ⏳ Menunggu scan...');
 });
@@ -72,6 +108,8 @@ client.on('qr', (qr) => {
  * Event: Authenticated - berhasil login
  */
 client.on('authenticated', () => {
+    isAuthenticated = true;
+    currentQR = '';
     console.log('[Bot] ✅ Autentikasi berhasil!');
 });
 

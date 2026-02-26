@@ -392,13 +392,9 @@ client.on('disconnected', (reason) => {
 
     // JANGAN hapus session di sini!
     // Session hanya dihapus saat /logout atau auth_failure
-    // Kalau disconnect biasa (network issue, dll), coba reconnect pakai session yang ada
-
-    console.log('[Bot] 🔄 Mencoba reconnect dalam 5 detik...');
-    setTimeout(() => {
-        console.log('[Bot] 🔄 Menghubungkan ulang ke WhatsApp...');
-        client.initialize();
-    }, 5000);
+    // Restart process TANPA hapus session → Render restart → auto reconnect pakai session lama
+    console.log('[Bot] 🔄 Restart process untuk reconnect (session tetap disimpan)...');
+    setTimeout(() => process.exit(0), 3000);
 });
 
 // ============ GRACEFUL SHUTDOWN ============

@@ -8,6 +8,8 @@ const chatState = require('./modules/chatState');
 const sheetsLogger = require('./modules/sheetsLogger');
 const sheetsReader = require('./modules/sheetsReader');
 const http = require('http');
+const fs = require('fs');
+const path = require('path');
 
 // =============================================
 //   🌐 KEEP-ALIVE SERVER (UNTUK RENDER)
@@ -18,10 +20,37 @@ let isAuthenticated = false;
 // Render butuh aplikasi untuk "listen" di suatu port agar deploy sukses
 // Server ini juga dipakai untuk di-ping oleh UptimeRobot agar bot tidak tidur/sleep
 const PORT = process.env.PORT || 3000;
-http.createServer((req, res) => {
+http.createServer(async (req, res) => {
+    // ========== ENDPOINT: /logout ==========
+    // Buka URL ini di browser untuk logout & reset session
+    // Setelah ini, bot akan restart dan muncul QR baru untuk nomor baru
+    if (req.url === '/logout') {
+        console.log('[Server] 🔄 Logout request diterima via HTTP...');
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end('<html><body style="font-family: Arial; text-align: center; margin-top: 50px;"><h1>🔄 Logout berhasil!</h1><p>Session dihapus. Bot akan restart dan menampilkan QR baru.</p><p>Refresh halaman utama dalam 30-60 detik untuk scan QR nomor baru.</p></body></html>');
+        try {
+            await client.logout();
+            console.log('[Server] ✅ client.logout() berhasil');
+        } catch (err) {
+            console.log('[Server] ⚠️ client.logout() gagal:', err.message);
+        }
+        // Hapus folder session secara manual untuk memastikan bersih
+        const sessionPath = path.join(config.sessionDir, 'session');
+        try {
+            fs.rmSync(sessionPath, { recursive: true, force: true });
+            console.log('[Server] 🗑️ Session folder dihapus:', sessionPath);
+        } catch (err) {
+            console.log('[Server] ⚠️ Gagal hapus session folder:', err.message);
+        }
+        // Restart process — Render akan auto-restart container
+        console.log('[Server] 🔄 Restarting process...');
+        process.exit(0);
+        return;
+    }
+
     res.writeHead(200, { 'Content-Type': 'text/html' });
     if (isAuthenticated) {
-        res.end('<html><body style="font-family: Arial; text-align: center; margin-top: 50px;"><h1>✅ Bot WhatsApp Suba Arch is Alive & Authenticated!</h1></body></html>');
+        res.end('<html><body style="font-family: Arial; text-align: center; margin-top: 50px;"><h1>✅ Bot WhatsApp Suba Arch is Alive & Authenticated!</h1><br><p><a href="/logout" style="color: red;">🔴 Klik di sini untuk Logout & Ganti Nomor</a></p></body></html>');
     } else if (currentQR) {
         res.end(`
             <html>
@@ -239,6 +268,22 @@ client.on('message_create', async (msg) => {
                     return;
                 }
 
+                // ========== COMMAND: /logout ==========
+                // Logout session agar bisa ganti nomor
+                if (text === '/logout') {
+                    await msg.reply('🔄 Logout dan reset session...\nBot akan restart dalam beberapa detik.\nBuka URL Render untuk scan QR nomor baru.');
+                    console.log('[Bot] 🔄 Logout command received via WhatsApp');
+                    try {
+                        await client.logout();
+                    } catch (err) {
+                        console.log('[Bot] ⚠️ client.logout() error:', err.message);
+                    }
+                    const sessionPath = path.join(config.sessionDir, 'session');
+                    fs.rmSync(sessionPath, { recursive: true, force: true });
+                    console.log('[Bot] 🗑️ Session folder dihapus');
+                    process.exit(0); // Render auto-restart
+                }
+
                 // ============ JANGAN PAUSE CHAT PRIBADI ADMIN ============
                 // Jika chat ini adalah "Message Yourself" (chat ke diri sendiri),
                 // JANGAN auto-pause. Admin sering chat dgn diri sendiri utk test.
@@ -331,7 +376,24 @@ client.on('message_create', async (msg) => {
  */
 client.on('disconnected', (reason) => {
     console.log('[Bot] 🔴 Bot terputus:', reason);
-    console.log('[Bot] 💡 Jalankan ulang dengan: npm start');
+    isAuthenticated = false;
+    currentQR = '';
+
+    // Hapus session data lama agar scan QR berikutnya bersih
+    const sessionPath = path.join(config.sessionDir, 'session');
+    try {
+        fs.rmSync(sessionPath, { recursive: true, force: true });
+        console.log('[Bot] 🗑️ Session data dihapus untuk fresh start');
+    } catch (err) {
+        console.log('[Bot] ⚠️ Gagal hapus session:', err.message);
+    }
+
+    // Re-initialize setelah delay agar muncul QR baru
+    console.log('[Bot] 🔄 Re-initialize dalam 5 detik...');
+    setTimeout(() => {
+        console.log('[Bot] 🔄 Menghubungkan ulang ke WhatsApp...');
+        client.initialize();
+    }, 5000);
 });
 
 // ============ GRACEFUL SHUTDOWN ============

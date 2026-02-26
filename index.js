@@ -390,18 +390,15 @@ client.on('disconnected', (reason) => {
     isAuthenticated = false;
     currentQR = '';
 
-    // Hapus SELURUH session data agar scan QR berikutnya bersih
-    try {
-        fs.rmSync(config.sessionDir, { recursive: true, force: true });
-        console.log('[Bot] 🗑️ Seluruh .wwebjs_auth dihapus untuk fresh start');
-    } catch (err) {
-        console.log('[Bot] ⚠️ Gagal hapus session:', err.message);
-    }
+    // JANGAN hapus session di sini!
+    // Session hanya dihapus saat /logout atau auth_failure
+    // Kalau disconnect biasa (network issue, dll), coba reconnect pakai session yang ada
 
-    // Restart process — lebih stabil daripada re-initialize client yang sama
-    // Render akan auto-restart container
-    console.log('[Bot] 🔄 Restarting process dalam 3 detik...');
-    setTimeout(() => process.exit(0), 3000);
+    console.log('[Bot] 🔄 Mencoba reconnect dalam 5 detik...');
+    setTimeout(() => {
+        console.log('[Bot] 🔄 Menghubungkan ulang ke WhatsApp...');
+        client.initialize();
+    }, 5000);
 });
 
 // ============ GRACEFUL SHUTDOWN ============
@@ -421,14 +418,12 @@ process.on('SIGINT', async () => {
 // Mencegah process crash karena error Puppeteer yang tidak tertangkap
 process.on('unhandledRejection', (reason) => {
     console.error('[Bot] ⚠️ Unhandled Rejection:', reason?.message || reason);
+    // Jangan restart — hanya log. Biar bot tetap jalan.
 });
 process.on('uncaughtException', (err) => {
     console.error('[Bot] ⚠️ Uncaught Exception:', err.message);
-    // Hapus session dan restart untuk recovery
-    try {
-        fs.rmSync(config.sessionDir, { recursive: true, force: true });
-    } catch (e) { /* ignore */ }
-    setTimeout(() => process.exit(1), 2000);
+    // Hanya log, jangan restart otomatis agar tidak restart loop
+    // Restart hanya terjadi dari /logout, disconnect, atau auth_failure
 });
 
 // ============ START BOT ============

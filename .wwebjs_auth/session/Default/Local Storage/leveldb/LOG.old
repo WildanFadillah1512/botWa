@@ -1,6 +1,0 @@
-2026/02/26-11:34:13.326 53ac Reusing MANIFEST C:\botWA\.wwebjs_auth\session\Default\Local Storage\leveldb/MANIFEST-000001
-2026/02/26-11:34:13.356 53ac Recovering log #35
-2026/02/26-11:34:13.360 53ac Reusing old log C:\botWA\.wwebjs_auth\session\Default\Local Storage\leveldb/000035.log 
-2026/02/26-11:55:37.000 53ac Level-0 table #37: started
-2026/02/26-11:55:37.028 53ac Level-0 table #37: 14876 bytes OK
-2026/02/26-11:55:37.035 53ac Delete type=0 #35

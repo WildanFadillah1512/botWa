@@ -28,23 +28,23 @@ http.createServer(async (req, res) => {
         console.log('[Server] 🔄 Logout request diterima via HTTP...');
         res.writeHead(200, { 'Content-Type': 'text/html' });
         res.end('<html><body style="font-family: Arial; text-align: center; margin-top: 50px;"><h1>🔄 Logout berhasil!</h1><p>Session dihapus. Bot akan restart dan menampilkan QR baru.</p><p>Refresh halaman utama dalam 30-60 detik untuk scan QR nomor baru.</p></body></html>');
+        // Gunakan destroy() bukan logout() untuk menghindari crash Puppeteer
         try {
-            await client.logout();
-            console.log('[Server] ✅ client.logout() berhasil');
+            await client.destroy();
+            console.log('[Server] ✅ client.destroy() berhasil');
         } catch (err) {
-            console.log('[Server] ⚠️ client.logout() gagal:', err.message);
+            console.log('[Server] ⚠️ client.destroy() gagal (tidak masalah):', err.message);
         }
-        // Hapus folder session secara manual untuk memastikan bersih
-        const sessionPath = path.join(config.sessionDir, 'session');
+        // Hapus SELURUH folder .wwebjs_auth agar benar-benar bersih
         try {
-            fs.rmSync(sessionPath, { recursive: true, force: true });
-            console.log('[Server] 🗑️ Session folder dihapus:', sessionPath);
+            fs.rmSync(config.sessionDir, { recursive: true, force: true });
+            console.log('[Server] 🗑️ Seluruh .wwebjs_auth dihapus');
         } catch (err) {
-            console.log('[Server] ⚠️ Gagal hapus session folder:', err.message);
+            console.log('[Server] ⚠️ Gagal hapus folder:', err.message);
         }
         // Restart process — Render akan auto-restart container
         console.log('[Server] 🔄 Restarting process...');
-        process.exit(0);
+        setTimeout(() => process.exit(0), 1000);
         return;
     }
 
@@ -148,10 +148,18 @@ client.on('authenticated', () => {
 
 /**
  * Event: Authentication failure
+ * Otomatis hapus session dan restart agar muncul QR baru
  */
 client.on('auth_failure', (err) => {
     console.error('[Bot] ❌ Autentikasi gagal:', err);
-    console.log('[Bot] 💡 Coba hapus folder .wwebjs_auth dan jalankan ulang.');
+    console.log('[Bot] 🗑️ Menghapus session data dan restart...');
+    try {
+        fs.rmSync(config.sessionDir, { recursive: true, force: true });
+    } catch (e) {
+        console.log('[Bot] ⚠️ Gagal hapus session:', e.message);
+    }
+    // Restart — Render auto-restart
+    setTimeout(() => process.exit(1), 2000);
 });
 
 /**
@@ -274,14 +282,17 @@ client.on('message_create', async (msg) => {
                     await msg.reply('🔄 Logout dan reset session...\nBot akan restart dalam beberapa detik.\nBuka URL Render untuk scan QR nomor baru.');
                     console.log('[Bot] 🔄 Logout command received via WhatsApp');
                     try {
-                        await client.logout();
+                        await client.destroy();
                     } catch (err) {
-                        console.log('[Bot] ⚠️ client.logout() error:', err.message);
+                        console.log('[Bot] ⚠️ client.destroy() error:', err.message);
                     }
-                    const sessionPath = path.join(config.sessionDir, 'session');
-                    fs.rmSync(sessionPath, { recursive: true, force: true });
-                    console.log('[Bot] 🗑️ Session folder dihapus');
-                    process.exit(0); // Render auto-restart
+                    try {
+                        fs.rmSync(config.sessionDir, { recursive: true, force: true });
+                        console.log('[Bot] 🗑️ Seluruh .wwebjs_auth dihapus');
+                    } catch (err) {
+                        console.log('[Bot] ⚠️ Gagal hapus:', err.message);
+                    }
+                    setTimeout(() => process.exit(0), 1000);
                 }
 
                 // ============ JANGAN PAUSE CHAT PRIBADI ADMIN ============
@@ -379,21 +390,18 @@ client.on('disconnected', (reason) => {
     isAuthenticated = false;
     currentQR = '';
 
-    // Hapus session data lama agar scan QR berikutnya bersih
-    const sessionPath = path.join(config.sessionDir, 'session');
+    // Hapus SELURUH session data agar scan QR berikutnya bersih
     try {
-        fs.rmSync(sessionPath, { recursive: true, force: true });
-        console.log('[Bot] 🗑️ Session data dihapus untuk fresh start');
+        fs.rmSync(config.sessionDir, { recursive: true, force: true });
+        console.log('[Bot] 🗑️ Seluruh .wwebjs_auth dihapus untuk fresh start');
     } catch (err) {
         console.log('[Bot] ⚠️ Gagal hapus session:', err.message);
     }
 
-    // Re-initialize setelah delay agar muncul QR baru
-    console.log('[Bot] 🔄 Re-initialize dalam 5 detik...');
-    setTimeout(() => {
-        console.log('[Bot] 🔄 Menghubungkan ulang ke WhatsApp...');
-        client.initialize();
-    }, 5000);
+    // Restart process — lebih stabil daripada re-initialize client yang sama
+    // Render akan auto-restart container
+    console.log('[Bot] 🔄 Restarting process dalam 3 detik...');
+    setTimeout(() => process.exit(0), 3000);
 });
 
 // ============ GRACEFUL SHUTDOWN ============
@@ -407,6 +415,20 @@ process.on('SIGINT', async () => {
         // ignore
     }
     process.exit(0);
+});
+
+// ============ CRASH PROTECTION ============
+// Mencegah process crash karena error Puppeteer yang tidak tertangkap
+process.on('unhandledRejection', (reason) => {
+    console.error('[Bot] ⚠️ Unhandled Rejection:', reason?.message || reason);
+});
+process.on('uncaughtException', (err) => {
+    console.error('[Bot] ⚠️ Uncaught Exception:', err.message);
+    // Hapus session dan restart untuk recovery
+    try {
+        fs.rmSync(config.sessionDir, { recursive: true, force: true });
+    } catch (e) { /* ignore */ }
+    setTimeout(() => process.exit(1), 2000);
 });
 
 // ============ START BOT ============

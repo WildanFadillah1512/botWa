@@ -1,5 +1,21 @@
-require('dotenv').config();
 const path = require('path');
+const fs = require('fs');
+
+// Gunakan path EKSPLISIT ke .env agar selalu ketemu di device manapun
+const envPath = path.join(__dirname, '.env');
+const envExists = fs.existsSync(envPath);
+
+console.log(`[Config] 📁 Lokasi .env: ${envPath}`);
+console.log(`[Config] ${envExists ? '✅ File .env DITEMUKAN' : '❌ File .env TIDAK DITEMUKAN!'}`);
+
+if (envExists) {
+  require('dotenv').config({ path: envPath });
+  console.log('[Config] ✅ dotenv berhasil dimuat dari path eksplisit');
+} else {
+  // Fallback: coba default (process.cwd)
+  require('dotenv').config();
+  console.log('[Config] ⚠️ Mencoba dotenv dari default cwd:', process.cwd());
+}
 
 module.exports = {
   // Nama bot

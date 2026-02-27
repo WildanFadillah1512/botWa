@@ -35,12 +35,18 @@ http.createServer(async (req, res) => {
         } catch (err) {
             console.log('[Server] ⚠️ client.destroy() gagal (tidak masalah):', err.message);
         }
-        // Hapus SELURUH folder .wwebjs_auth agar benar-benar bersih
+        // Hapus SELURUH folder .wwebjs_auth + .wwebjs_cache agar benar-benar bersih
         try {
             fs.rmSync(config.sessionDir, { recursive: true, force: true });
             console.log('[Server] 🗑️ Seluruh .wwebjs_auth dihapus');
         } catch (err) {
-            console.log('[Server] ⚠️ Gagal hapus folder:', err.message);
+            console.log('[Server] ⚠️ Gagal hapus auth folder:', err.message);
+        }
+        try {
+            fs.rmSync(path.join(__dirname, '.wwebjs_cache'), { recursive: true, force: true });
+            console.log('[Server] 🗑️ Seluruh .wwebjs_cache dihapus');
+        } catch (err) {
+            console.log('[Server] ⚠️ Gagal hapus cache folder:', err.message);
         }
         // Restart process — Render akan auto-restart container
         console.log('[Server] 🔄 Restarting process...');
@@ -152,11 +158,18 @@ client.on('authenticated', () => {
  */
 client.on('auth_failure', (err) => {
     console.error('[Bot] ❌ Autentikasi gagal:', err);
-    console.log('[Bot] 🗑️ Menghapus session data dan restart...');
+    console.log('[Bot] 🗑️ Menghapus session + cache data dan restart...');
     try {
         fs.rmSync(config.sessionDir, { recursive: true, force: true });
+        console.log('[Bot] 🗑️ .wwebjs_auth dihapus');
     } catch (e) {
         console.log('[Bot] ⚠️ Gagal hapus session:', e.message);
+    }
+    try {
+        fs.rmSync(path.join(__dirname, '.wwebjs_cache'), { recursive: true, force: true });
+        console.log('[Bot] 🗑️ .wwebjs_cache dihapus');
+    } catch (e) {
+        console.log('[Bot] ⚠️ Gagal hapus cache:', e.message);
     }
     // Restart — Render auto-restart
     setTimeout(() => process.exit(1), 2000);
@@ -290,7 +303,13 @@ client.on('message_create', async (msg) => {
                         fs.rmSync(config.sessionDir, { recursive: true, force: true });
                         console.log('[Bot] 🗑️ Seluruh .wwebjs_auth dihapus');
                     } catch (err) {
-                        console.log('[Bot] ⚠️ Gagal hapus:', err.message);
+                        console.log('[Bot] ⚠️ Gagal hapus auth:', err.message);
+                    }
+                    try {
+                        fs.rmSync(path.join(__dirname, '.wwebjs_cache'), { recursive: true, force: true });
+                        console.log('[Bot] 🗑️ Seluruh .wwebjs_cache dihapus');
+                    } catch (err) {
+                        console.log('[Bot] ⚠️ Gagal hapus cache:', err.message);
                     }
                     setTimeout(() => process.exit(0), 1000);
                 }
@@ -390,10 +409,16 @@ client.on('disconnected', (reason) => {
     isAuthenticated = false;
     currentQR = '';
 
-    // JANGAN hapus session di sini!
-    // Session hanya dihapus saat /logout atau auth_failure
-    // Restart process TANPA hapus session → Render restart → auto reconnect pakai session lama
-    console.log('[Bot] 🔄 Restart process untuk reconnect (session tetap disimpan)...');
+    // Jika disconnect karena LOGOUT, hapus session + cache agar QR baru bersih
+    if (reason === 'LOGOUT') {
+        console.log('[Bot] 🗑️ Disconnect karena LOGOUT — membersihkan session + cache...');
+        try { fs.rmSync(config.sessionDir, { recursive: true, force: true }); } catch (e) { }
+        try { fs.rmSync(path.join(__dirname, '.wwebjs_cache'), { recursive: true, force: true }); } catch (e) { }
+        console.log('[Bot] ✅ Session + cache dihapus');
+    } else {
+        // Untuk disconnect lain (network issue, dll) — session tetap disimpan untuk auto-reconnect
+        console.log('[Bot] 🔄 Restart process untuk reconnect (session tetap disimpan)...');
+    }
     setTimeout(() => process.exit(0), 3000);
 });
 
@@ -421,6 +446,20 @@ process.on('uncaughtException', (err) => {
     // Hanya log, jangan restart otomatis agar tidak restart loop
     // Restart hanya terjadi dari /logout, disconnect, atau auth_failure
 });
+
+// ============ STARTUP CLEANUP ============
+// Cek apakah session folder ada tapi corrupt/kosong → hapus agar fresh start
+try {
+    const sessionPath = path.join(config.sessionDir, 'session', 'Default');
+    if (fs.existsSync(config.sessionDir) && !fs.existsSync(sessionPath)) {
+        console.log('[Bot] ⚠️ Session folder ada tapi tidak lengkap, menghapus...');
+        fs.rmSync(config.sessionDir, { recursive: true, force: true });
+        try { fs.rmSync(path.join(__dirname, '.wwebjs_cache'), { recursive: true, force: true }); } catch (e) { }
+        console.log('[Bot] 🗑️ Stale session dihapus, akan generate QR baru');
+    }
+} catch (err) {
+    console.log('[Bot] ⚠️ Startup cleanup error (diabaikan):', err.message);
+}
 
 // ============ START BOT ============
 

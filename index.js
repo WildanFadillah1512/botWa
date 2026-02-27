@@ -105,6 +105,9 @@ const client = new Client({
     }),
     puppeteer: {
         headless: true,
+        handleSIGINT: false,
+        handleSIGTERM: false,
+        handleSIGHUP: false,
         // Gunakan Chromium dari system (Docker) jika env var di-set
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
         args: [

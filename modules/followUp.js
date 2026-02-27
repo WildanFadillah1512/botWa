@@ -181,8 +181,16 @@ function addDynamicFollowup(phone, dateObj, text) {
  * Mengembalikan true jika pesan ditangani oleh modul ini.
  */
 async function handleFollowupInteractive(waClient, msg) {
+    const chatState = require('./chatState');
     const adminId = msg.from;
     const text = msg.body ? msg.body.trim() : '';
+
+    // Override msg.reply untuk otomatis me-mark sebagai pesan bot
+    const originalReply = msg.reply.bind(msg);
+    msg.reply = async (replyText) => {
+        chatState.markAsBotMessage(replyText);
+        return await originalReply(replyText);
+    };
 
     // Deteksi pembatalan
     if (text.toLowerCase() === 'batal' && followupSessions[adminId]) {

@@ -356,9 +356,13 @@ client.on('message_create', async (msg) => {
         // Cek admin command (bisa dari bot sendiri atau dari nomor admin eksternal)
         const isAdmin = msg.fromMe || (config.adminPhone && msg.from === `${config.adminPhone}@c.us`);
 
+        // Cek apakah pesan ini adalah automated bot reply untuk sesi interaktif (menghindari endless loop)
+        const textForBotCheck = msg.body ? msg.body.trim() : '';
+        const isInteractiveBotReply = chatState.isRecentBotMessage(textForBotCheck);
+
         // Routing ke modul broadcast
         const broadcast = require('./modules/broadcast');
-        if (isAdmin && msg.body) {
+        if (isAdmin && msg.body && !isInteractiveBotReply) {
             if (msg.body.startsWith('/broadcast') || broadcast.isInSession(msg.from)) {
                 const handled = await broadcast.handleBroadcastInteractive(client, msg);
                 if (handled) return;
@@ -366,7 +370,7 @@ client.on('message_create', async (msg) => {
         }
 
         // Routing ke modul follow-up interaktif
-        if (isAdmin && msg.body) {
+        if (isAdmin && msg.body && !isInteractiveBotReply) {
             const bodyTrimmed = msg.body.trim();
             // /followup tanpa parameter → tampilkan menu interaktif
             // /followup dengan parameter → legacy direct command

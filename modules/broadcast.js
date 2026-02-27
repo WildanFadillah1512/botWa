@@ -68,8 +68,16 @@ function isInSession(adminId) {
  * Handle alur interaktif broadcast
  */
 async function handleBroadcastInteractive(client, msg) {
+    const chatState = require('./chatState');
     const adminId = msg.from;
     const text = msg.body ? msg.body.trim() : '';
+
+    // Override msg.reply untuk otomatis me-mark sebagai pesan bot
+    const originalReply = msg.reply.bind(msg);
+    msg.reply = async (replyText) => {
+        chatState.markAsBotMessage(replyText);
+        return await originalReply(replyText);
+    };
 
     // Deteksi perintah pembatalan
     if (cancelSession(msg)) return true;

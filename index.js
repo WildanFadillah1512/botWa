@@ -244,6 +244,9 @@ client.on('message', async (msg) => {
         // 3. Jika tidak ada keyword yang match, gunakan AI
         if (!replied) {
             if (config.ai.useAI) {
+                // Catat waktu kapan pesan user masuk
+                const userMessageTime = Date.now();
+
                 const aiReply = await ai.generateReply(msg.body, chatId);
 
                 if (aiReply) {
@@ -251,6 +254,14 @@ client.on('message', async (msg) => {
                     if (aiReply.trim() === 'IGNORE_DO_NOT_REPLY') {
                         console.log(`[Bot] 🛑 Pesan spam/filler dari ${msg.from} diabaikan oleh AI.`);
                         return; // Jangan balas apa-apa
+                    }
+
+                    // --- ANTI DOUBLE REPLY CHECK ---
+                    // Cek apakah admin membalas manual SELAMA rentang waktu AI sedang "berpikir" (mencari jawaban AI)
+                    const lastPauseTime = chatState.getLastPauseTime(chatId);
+                    if (lastPauseTime > userMessageTime) {
+                        console.log(`[Bot] 🛑 Admin membalas manual saat AI sedang berpikir. Pesan AI dibatalkan agar tidak double-reply ke ${msg.from}.`);
+                        return;
                     }
 
                     // Tandai bahwa ini pesan bot agar tidak men-trigger auto pause
@@ -335,9 +346,8 @@ client.on('message_create', async (msg) => {
                     const isKnownAutoReply = (autoReply.getRules ? autoReply.getRules().some(r => r.reply === text) : false) || text.includes('Format salah');
 
                     if (!isKnownAutoReply) {
-                        if (!chatState.isPaused(chatId)) {
-                            chatState.pauseChat(chatId);
-                        }
+                        // Always update pause time to prevent auto-resume while admin is actively chatting
+                        chatState.pauseChat(chatId);
                     }
                 }
             }

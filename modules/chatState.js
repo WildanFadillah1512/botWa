@@ -4,8 +4,11 @@ const config = require('../config');
 
 const PAUSED_CHATS_PATH = path.join(config.dataDir, 'pausedChats.json');
 
-// Memory store for paused chats [chatId: boolean]
+// Memory store for paused chats [chatId: number (timestamp)]
 let pausedChats = {};
+
+// 10 minutes in milliseconds
+const PAUSE_TIMEOUT_MS = 10 * 60 * 1000;
 
 /**
  * Load paused chats from file
@@ -43,7 +46,27 @@ function savePausedChats() {
  * @returns {boolean}
  */
 function isPaused(chatId) {
-    return !!pausedChats[chatId];
+    const pauseTime = pausedChats[chatId];
+    if (!pauseTime) return false;
+
+    // Handle legacy boolean value or invalid timestamp
+    if (pauseTime === true || typeof pauseTime !== 'number') {
+        // Automatically convert to current timestamp so it eventually expires
+        pausedChats[chatId] = Date.now();
+        savePausedChats();
+        return true;
+    }
+
+    // Check if 10 minutes have passed
+    if (Date.now() - pauseTime > PAUSE_TIMEOUT_MS) {
+        // Auto-resume
+        delete pausedChats[chatId];
+        savePausedChats();
+        console.log(`[ChatState] 🔄 Auto-resumed chat ${chatId} after 10 minutes of inactivity.`);
+        return false;
+    }
+
+    return true;
 }
 
 /**
@@ -51,11 +74,22 @@ function isPaused(chatId) {
  * @param {string} chatId 
  */
 function pauseChat(chatId) {
-    if (!pausedChats[chatId]) {
-        pausedChats[chatId] = true;
-        savePausedChats();
-        console.log(`[ChatState] ⏸️ Bot paused for chat: ${chatId}`);
+    pausedChats[chatId] = Date.now();
+    savePausedChats();
+    console.log(`[ChatState] ⏸️ Bot paused for chat: ${chatId}`);
+}
+
+/**
+ * Get the exact timestamp when a chat was last paused
+ * @param {string} chatId 
+ * @returns {number} Timestamp in ms (or 0 if not paused)
+ */
+function getLastPauseTime(chatId) {
+    const pauseTime = pausedChats[chatId];
+    if (typeof pauseTime === 'number') {
+        return pauseTime;
     }
+    return 0; // Not paused or invalid timestamp
 }
 
 /**
@@ -87,6 +121,7 @@ function isRecentBotMessage(text) {
 
 module.exports = {
     isPaused,
+    getLastPauseTime,
     pauseChat,
     resumeChat,
     markAsBotMessage,

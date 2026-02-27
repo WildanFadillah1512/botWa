@@ -134,14 +134,13 @@ async function processDynamicFollowups() {
                 sent++;
                 console.log(`[FollowUp] 📤 Dynamic message sent to ${task.phone}`);
 
-                // Notify admin of success
-                if (config.adminPhone) {
-                    try {
-                        const adminJid = await resolvePhoneToJid(client, config.adminPhone);
-                        await client.sendMessage(adminJid, `✅ *Follow-Up Sukses!*\n\nPesan berhasil dikirim ke: ${task.phone}\n⏳ Waktu Jadwal: ${new Date(task.targetTime).toLocaleString()}\n📝 Pesan: ${task.message}`);
-                    } catch (adminErr) {
-                        console.error(`[FollowUp] ⚠️ Gagal notify admin: ${adminErr.message}`);
-                    }
+                // Notify admin of success (using bot's own number/host number)
+                try {
+                    // client.info.wid._serialized is the connected bot's number (e.g., 628xxx@c.us)
+                    const adminJid = client.info.wid._serialized;
+                    await client.sendMessage(adminJid, `✅ *Follow-Up Sukses!*\n\nPesan berhasil dikirim ke: ${task.phone}\n⏳ Waktu Jadwal: ${new Date(task.targetTime).toLocaleString()}\n📝 Pesan: ${task.message}`);
+                } catch (adminErr) {
+                    console.error(`[FollowUp] ⚠️ Gagal notify admin: ${adminErr.message}`);
                 }
             } catch (err) {
                 console.error(`[FollowUp] ❌ Gagal kirim dynamic ke ${task.phone}:`, err.message);

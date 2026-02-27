@@ -1,21 +1,60 @@
 const path = require('path');
 const fs = require('fs');
 
-// Gunakan path EKSPLISIT ke .env agar selalu ketemu di device manapun
+// ========== ROBUST .ENV LOADER ==========
 const envPath = path.join(__dirname, '.env');
-const envExists = fs.existsSync(envPath);
-
 console.log(`[Config] 📁 Lokasi .env: ${envPath}`);
-console.log(`[Config] ${envExists ? '✅ File .env DITEMUKAN' : '❌ File .env TIDAK DITEMUKAN!'}`);
 
-if (envExists) {
+if (fs.existsSync(envPath)) {
+  console.log('[Config] ✅ File .env DITEMUKAN');
+
+  // Coba dotenv dulu
   require('dotenv').config({ path: envPath });
-  console.log('[Config] ✅ dotenv berhasil dimuat dari path eksplisit');
+
+  // Cek apakah dotenv berhasil load
+  if (!process.env.GEMINI_API_KEYS) {
+    console.log('[Config] ⚠️ dotenv gagal load GEMINI_API_KEYS, mencoba manual parser...');
+
+    // Manual parser — handles BOM, encoding issues, extra whitespace
+    let raw = fs.readFileSync(envPath, 'utf-8');
+
+    // Strip BOM (Byte Order Mark) yang sering muncul di file Windows
+    raw = raw.replace(/^\uFEFF/, '');
+    // Strip karakter null/invisible lainnya
+    raw = raw.replace(/\0/g, '');
+
+    console.log(`[Config] 📄 .env raw length: ${raw.length} chars`);
+
+    const lines = raw.split(/\r?\n/);
+    for (const line of lines) {
+      const trimmed = line.trim();
+      // Skip komentar dan baris kosong
+      if (!trimmed || trimmed.startsWith('#')) continue;
+
+      const eqIndex = trimmed.indexOf('=');
+      if (eqIndex === -1) continue;
+
+      const key = trimmed.substring(0, eqIndex).trim();
+      let value = trimmed.substring(eqIndex + 1).trim();
+      // Hapus quotes jika ada
+      if ((value.startsWith('"') && value.endsWith('"')) ||
+        (value.startsWith("'") && value.endsWith("'"))) {
+        value = value.slice(1, -1);
+      }
+
+      if (key) {
+        process.env[key] = value;
+        console.log(`[Config] 🔧 Manual set: ${key} = ${value.substring(0, 15)}...`);
+      }
+    }
+  } else {
+    console.log('[Config] ✅ dotenv berhasil memuat env vars');
+  }
 } else {
-  // Fallback: coba default (process.cwd)
+  console.error('[Config] ❌ File .env TIDAK DITEMUKAN!');
   require('dotenv').config();
-  console.log('[Config] ⚠️ Mencoba dotenv dari default cwd:', process.cwd());
 }
+// ==========================================
 
 module.exports = {
   // Nama bot

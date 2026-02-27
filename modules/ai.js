@@ -1,5 +1,16 @@
 const config = require('../config');
 
+// ========== DEBUG: Cek API Keys saat module dimuat ==========
+console.log(`[AI] 🔑 Gemini API Keys terdeteksi: ${(config.ai.geminiApiKeys || []).length} keys`);
+console.log(`[AI] 🔑 Groq API Keys terdeteksi: ${(config.ai.groqApiKeys || []).length} keys`);
+if ((config.ai.geminiApiKeys || []).length === 0 && (config.ai.groqApiKeys || []).length === 0) {
+    console.error('[AI] ⛔ PERINGATAN: Tidak ada API Key yang dimuat! Cek file .env Anda!');
+    console.error('[AI] 💡 Pastikan format .env benar: GEMINI_API_KEYS=key1,key2,key3');
+    console.error('[AI] 💡 Env GEMINI_API_KEYS raw value:', JSON.stringify(process.env.GEMINI_API_KEYS));
+    console.error('[AI] 💡 Env GROQ_API_KEYS raw value:', JSON.stringify(process.env.GROQ_API_KEYS));
+}
+// ============================================================
+
 // Riwayat percakapan per chat (in-memory, reset saat restart)
 const chatHistories = new Map();
 
